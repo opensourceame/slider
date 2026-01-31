@@ -4,8 +4,8 @@ extends Node2D
 @onready var world        = $World
 @onready var hud          = $HUD
 
-#var grid_size = Vector2i(4, 6)
-var grid_size = Vector2(2,3)
+var grid_size = Vector2i(4, 6)
+#var grid_size = Vector2(2,3)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
 var tile_size = 150
@@ -22,8 +22,11 @@ func _ready():
 	load_and_split_image()
 	create_styles()
 	initialize_grid()
-	#randomize_grid()
 	setup_tiles()
+	
+	# Wait 2 seconds before shuffling
+	await get_tree().create_timer(2.0).timeout
+	randomize_grid()
 
 	print("READY")
 	
@@ -88,25 +91,55 @@ func initialize_grid():
 			tiles[y][x] = t
 	
 func randomize_grid():
-	var all_tiles = []
+	# Duplicate the current grid
+	var grid_copy = []
+	for y in range(grid_size.y):
+		grid_copy.append([])
+		for x in range(grid_size.x):
+			grid_copy[y].append(tiles[y][x])
 	
-	# Collect all tiles except the empty one
+	# Create a list of all non-empty tiles for shuffling
+	var all_tiles = []
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			if not (x == empty_position.x and y == empty_position.y):
-				all_tiles.append(tiles[y][x])
+				all_tiles.append(grid_copy[y][x])
 	
-	# Shuffle the tiles
+	# Shuffle the tiles to get new random positions
 	all_tiles.shuffle()
 	
-	# Redistribute tiles randomly
+	# Create tweens for all tiles to animate to their new positions
+	var tweens = []
 	var tile_index = 0
+	var spacing = tile_gap
+	var start_x = 0
+	var start_y = 0
+	
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			if x == empty_position.x and y == empty_position.y:
 				continue
-			tiles[y][x] = all_tiles[tile_index]
+				
+			var tile = all_tiles[tile_index]
+			var target_position = Vector2(
+				start_x + x * (tile_size + spacing),
+				start_y + y * (tile_size + spacing)
+			)
+			
+			# Create tween for this tile
+			var tween = create_tween()
+			tween.set_ease(Tween.EASE_OUT)
+			tween.set_trans(Tween.TRANS_QUART)
+			tween.tween_property(tile, "position", target_position, 2.0)
+			tweens.append(tween)
+			
+			# Update the grid data structure with new positions
+			tiles[y][x] = tile
+			tile.grid_position = Vector2i(x, y)
 			tile_index += 1
+	
+	# Return the array of tweens so they can be awaited if needed
+	return tweens
 
 func setup_tiles():
 	var spacing = tile_gap
