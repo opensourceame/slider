@@ -2,10 +2,15 @@ extends Control
 class_name Tile
 
 @onready var background = $Background
-@onready var label = $Label
+@onready var label 		= $Label
+
+static func BLANK() -> Tile:
+	var t = preload("res://scenes/Tile.tscn").instantiate()
+	t.number = 0
+	return t
 
 var number : int = 0
-var grid_position = Vector2()
+var grid_position = Vector2.ZERO
 
 func _ready():
 	background.gui_input.connect(_on_gui_input)
@@ -32,7 +37,7 @@ func _on_pressed():
 
 func set_number(value):
 	number = value
-	update_display()
+	return self
 
 func update_display():
 	if number > 0:

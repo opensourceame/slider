@@ -1,16 +1,16 @@
 extends Node2D
 
-var grid_size = Vector2(4, 4)
+@onready var tile_scene = preload("res://scenes/Tile.tscn")
+
+var grid_size = Vector2(3, 3)
 var tile_size = 100
 var tiles = []
-var empty_position = Vector2(3, 0)
-var tile_scene: PackedScene
+var empty_position = Vector2(2, 0)
 var game_won = false
 var normal_style: StyleBox
 var highlight_style: StyleBox
 
 func _ready():
-	tile_scene = preload("res://scenes/Tile.tscn")
 	create_styles()
 	initialize_grid()
 	setup_tiles()
@@ -30,11 +30,14 @@ func initialize_grid():
 	var index = 0
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
+			var t = tile_scene.instantiate()
 			if x == empty_position.x and y == empty_position.y:
-				tiles[y][x] = 0
+				t.set_number(0)
 			else:
-				tiles[y][x] = numbers[index - 1]
-				index += 1
+				t.set_number(numbers.pop_front())
+			tiles[y][x] = t
+				
+				
 
 func setup_tiles():
 	var spacing = 5
@@ -43,16 +46,16 @@ func setup_tiles():
 	
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
-			if tiles[y][x] == 0:
+			var tile = tiles[y][x]
+			if tiles[y][x].number == 0:
 				continue
 			
-			var tile = tile_scene.instantiate()
+			#var tile = tile_scene.instantiate()
 			tile.position = Vector2(
 				start_x + x * (tile_size + spacing),
 				start_y + y * (tile_size + spacing)
 			)
 			tile.grid_position = Vector2(x, y)
-			tile.number = tiles[y][x]
 			add_child(tile)
 
 func _on_tile_pressed(tile):
@@ -63,22 +66,8 @@ func _on_tile_pressed(tile):
 	print("space at   ", empty_position)
 	
 	var tile_pos = tile.grid_position
-	if can_move(tile_pos):
-		# Calculate direction to empty space
-		var x_dir = empty_position.x - tile_pos.x
-		var y_dir = empty_position.y - tile_pos.y
-		
-		# Call slide_tile with the calculated direction
-		slide_tile(tile, x_dir, y_dir)
-
-func can_move(position):
-	var diff = position - empty_position
-	return diff.length_squared() == 1
-
-func swap_with_empty(position):
-	var temp = tiles[position.y][position.x]
-	tiles[position.y][position.x] = tiles[empty_position.y][empty_position.x]
-	tiles[empty_position.y][empty_position.x] = temp
+	if in_line_with_empty(tile):
+		move_tiles_to_empty(tile)
 
 func check_win():
 	var expected = 1
@@ -86,7 +75,7 @@ func check_win():
 		for x in range(grid_size.x):
 			if y == grid_size.y - 1 and x == grid_size.x - 1:
 				return tiles[y][x] == 0
-			if tiles[y][x] != expected:
+			if tiles[y][x].number != expected:
 				return false
 			expected += 1
 	return true
@@ -165,7 +154,7 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 	
 	# Check if target position is the empty space
 	if target_pos == empty_position:
-		swap_with_empty(tile_pos)
+		#swap_with_empty(tile_pos)
 		
 		var spacing = 5
 		var start_x = 0
@@ -187,6 +176,49 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 		
 		# Check win condition after animation completes
 		tween.tween_callback(check_win_after_move)
+
+func move_tiles_to_empty(clicked_tile: Tile):
+	var tile_pos = clicked_tile.grid_position
+	
+	# Early exit if not in line with empty
+	if not in_line_with_empty(clicked_tile):
+		return
+	
+	# Move tiles between clicked tile and empty space
+	if tile_pos.x == empty_position.x:  # Same column
+		var start_y = min(tile_pos.y, empty_position.y)
+		var end_y = max(tile_pos.y, empty_position.y)
+		# Move in reverse order (closest to empty first)
+		if tile_pos.y < empty_position.y:  # Clicked tile is above empty
+			for y in range(end_y - 1, start_y - 1, -1):
+				var tile_to_move = get_tile_at(Vector2(tile_pos.x, y))
+				if tile_to_move:
+					slide_tile(tile_to_move, 0, 1)
+		else:  # Clicked tile is below empty
+			for y in range(start_y + 1, end_y + 1):
+				var tile_to_move = get_tile_at(Vector2(tile_pos.x, y))
+				if tile_to_move:
+					slide_tile(tile_to_move, 0, -1)
+	else:  # Same row
+		var start_x = min(tile_pos.x, empty_position.x)
+		var end_x = max(tile_pos.x, empty_position.x)
+		# Move in reverse order (closest to empty first)
+		if tile_pos.x < empty_position.x:  # Clicked tile is left of empty
+			for x in range(end_x - 1, start_x - 1, -1):
+				var tile_to_move = get_tile_at(Vector2(x, tile_pos.y))
+				if tile_to_move:
+					slide_tile(tile_to_move, 1, 0)
+		else:  # Clicked tile is right of empty
+			for x in range(start_x + 1, end_x + 1):
+				var tile_to_move = get_tile_at(Vector2(x, tile_pos.y))
+				if tile_to_move:
+					slide_tile(tile_to_move, -1, 0)
+
+func get_tile_at(pos: Vector2) -> Tile:
+	for child in get_children():
+		if child is Tile and child.grid_position == pos:
+			return child
+	return null
 
 func shuffle_tiles():
 	for child in get_children():
