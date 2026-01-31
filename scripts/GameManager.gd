@@ -1,9 +1,9 @@
 extends Node2D
 
-var grid_size = Vector2(4, 4)
+var grid_size = Vector2(3, 3)
 var tile_size = 100
 var tiles = []
-var empty_position = Vector2(3, 3)
+var empty_position = Vector2(1, 1)
 var tile_scene: PackedScene
 var game_won = false
 var normal_style: StyleBox
@@ -67,16 +67,22 @@ func _on_tile_pressed(tile):
 		var start_x = 0
 		var start_y = 0
 		
-		tile.position = Vector2(
+		var target_position = Vector2(
 			start_x + empty_position.x * (tile_size + spacing),
 			start_y + empty_position.y * (tile_size + spacing)
 		)
+		
+		# Create sliding animation
+		var tween = create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_QUART)
+		tween.tween_property(tile, "position", target_position, 0.2)
+		
 		tile.grid_position = empty_position
 		empty_position = tile_pos
 		
-		if check_win():
-			game_won = true
-			print("You won!")
+		# Check win condition after animation completes
+		tween.tween_callback(check_win_after_move)
 
 func can_move(position):
 	var diff = position - empty_position
@@ -97,6 +103,11 @@ func check_win():
 				return false
 			expected += 1
 	return true
+
+func check_win_after_move():
+	if check_win():
+		game_won = true
+		print("You won!")
 
 func _unhandled_input(event):
 	if event.is_action_pressed("ui_accept"):
