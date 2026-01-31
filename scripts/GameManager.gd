@@ -4,19 +4,32 @@ extends Node2D
 @onready var world        = $World
 @onready var hud          = $HUD
 
-var grid_size = Vector2(4, 6)
-#var grid_size = Vector2(3, 4)
+#var grid_size = Vector2i(4, 6)
+var grid_size = Vector2(2,3)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
 var tile_size = 150
 var tile_gap = 5
 var tiles = []
-var empty_position : Vector2
+var empty_position : Vector2i
 var game_won = false
 var normal_style: StyleBox
 var highlight_style: StyleBox
 var moves : int = 0
 
+func _ready():
+	empty_position = Vector2i(grid_size.x - 1, grid_size.y - 1)
+	load_and_split_image()
+	create_styles()
+	initialize_grid()
+	#randomize_grid()
+	setup_tiles()
+
+	print("READY")
+	
+func _physics_process(delta: float) -> void:
+	pass
+	
 func load_and_split_image():
 	var image = Image.load_from_file("res://images/pepper.jpg")
 	if image:
@@ -48,13 +61,6 @@ func split_image_into_pieces():
 		
 	print("Created ", image_pieces.size(), " image pieces")
 
-func _ready():
-	empty_position = Vector2(grid_size.x - 1, grid_size.y - 1)
-	load_and_split_image()
-	create_styles()
-	initialize_grid()
-	randomize_grid()
-	setup_tiles()
 
 func initialize_grid():
 	var indices = []
@@ -118,7 +124,7 @@ func setup_tiles():
 				start_x + x * (tile_size + spacing),
 				start_y + y * (tile_size + spacing)
 			)
-			tile.grid_position = Vector2(x, y)
+			tile.grid_position = Vector2i(x, y)
 			world.add_child(tile)
 
 func _on_tile_pressed(tile):
@@ -136,11 +142,16 @@ func check_win():
 	var expected = 1
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
+			var t = tiles[y][x]
+			#if t.number == 0:
+				#continue
 			if y == grid_size.y - 1 and x == grid_size.x - 1:
-				return tiles[y][x] == 0
-			if tiles[y][x].number != expected:
+				expected = 0
+			print("expected ", expected, " got ", t.number)
+			if t.number != expected:
 				return false
 			expected += 1
+	print("COMPLETE")
 	return true
 
 func check_win_after_move():
@@ -184,7 +195,7 @@ func highlight_tiles_to_empty(hovered_tile: Tile):
 		for x in range(start_x, end_x + 1):
 			highlight_tile_at(Vector2(x, tile_pos.y))
 
-func highlight_tile_at(pos: Vector2):
+func highlight_tile_at(pos: Vector2i):
 	for child in world.get_children():
 		if child is Tile and child.grid_position == pos:
 			child.set_highlight(true)
@@ -209,7 +220,7 @@ func in_line_with_empty(tile: Tile) -> bool:
 
 func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 	var tile_pos = tile.grid_position
-	var target_pos = tile_pos + Vector2(x_dir, y_dir)
+	var target_pos = tile_pos + Vector2i(x_dir, y_dir)
 	
 	# Check if target position is within bounds
 	if target_pos.x < 0 or target_pos.x >= grid_size.x or target_pos.y < 0 or target_pos.y >= grid_size.y:
@@ -232,11 +243,12 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 		var tween = create_tween()
 		tween.set_ease(Tween.EASE_OUT)
 		tween.set_trans(Tween.TRANS_QUART)
-		tween.tween_property(tile, "position", target_position, 0.2)
+		tween.tween_property(tile, "position", target_position, 0.5)
 		
 		tile.grid_position = empty_position
 		empty_position = tile_pos
-		
+		tiles[tile_pos.y][tile_pos.x] = Tile.BLANK()
+		tiles[empty_position.y][empty_position.x] = tile
 		# Check win condition after animation completes
 		tween.tween_callback(check_win_after_move)
 
@@ -284,11 +296,63 @@ func move_tiles_to_empty(clicked_tile: Tile):
 func update_hud():
 	$MovesLabel.text = str(moves) + " moves played"
 	
-func get_tile_at(pos: Vector2) -> Tile:
+func get_tile_at(pos: Vector2i) -> Tile:
 	for child in world.get_children():
 		if child is Tile and child.grid_position == pos:
 			return child
 	return null
+
+func slide_row(row_index: int, direction: int):
+	if row_index < 0 or row_index >= grid_size.y:
+		return
+	
+	# Get all tiles in the row
+	var row_tiles = []
+	for x in range(grid_size.x):
+		var tile = tiles[row_index][x]
+		if tile:
+			row_tiles.append(tile)
+	
+	if row_tiles.size() == 0:
+		return
+	
+	# Calculate new positions with wrapping
+	for i in range(row_tiles.size()):
+		var tile = row_tiles[i]
+		var current_x = tile.grid_position.x
+		var new_x
+		
+		if direction > 0:  # Slide right
+			new_x = (current_x + 1) % grid_size.x
+		else:  # Slide left
+			new_x = (current_x - 1 + grid_size.x) % grid_size.x
+		
+		# Update grid positions
+		tile.grid_position = Vector2i(new_x, row_index)
+		tiles[row_index][new_x] = tile
+	
+	# Calculate new visual positions with spacing
+	var spacing = 2
+	var start_x = 0
+	var start_y = 0
+	
+	for tile in row_tiles:
+		var new_pos = Vector2(
+			start_x + tile.grid_position.x * (tile_size + spacing),
+			start_y + tile.grid_position.y * (tile_size + spacing)
+		)
+		
+		# Create sliding animation
+		var tween = create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_QUART)
+		tween.tween_property(tile, "position", new_pos, 0.3)
+	
+	# Check if empty space moved and update
+	for x in range(grid_size.x):
+		if tiles[row_index][x].number == 0:
+			empty_position = Vector2i(x, row_index)
+			break
 
 func shuffle_tiles():
 	for child in get_children():

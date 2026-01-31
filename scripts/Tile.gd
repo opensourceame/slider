@@ -13,7 +13,7 @@ static func BLANK() -> Tile:
 	return t
 
 var number : int = 0
-var grid_position = Vector2.ZERO
+var grid_position = Vector2i.ZERO
 var texture: Texture2D
 
 func _ready():
@@ -63,7 +63,7 @@ func update_display():
 
 func set_highlight(highlighted: bool):
 	if highlighted:
-		modulate = Color.LIGHT_GRAY
+		modulate = Color.DARK_SLATE_BLUE
 		background.add_theme_stylebox_override("panel", game.highlight_style)
 	else:
 		modulate = Color.WHITE
