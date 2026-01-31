@@ -2,8 +2,22 @@
 
 [ext_resource type="Script" uid="uid://dsfvvcogaqpit" path="res://scripts/GameManager.gd" id="1_8jv7h"]
 
+[sub_resource type="LabelSettings" id="LabelSettings_ibkli"]
+font_size = 48
+
 [node name="Game" type="Node2D" unique_id=902562489]
 script = ExtResource("1_8jv7h")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1496438668]
-position = Vector2(402, 301)
+position = Vector2(550, 550)
+
+[node name="MovesLabel" type="Label" parent="." unique_id=581566356]
+offset_left = 700.0
+offset_right = 891.0
+offset_bottom = 67.0
+text = "0 moves"
+label_settings = SubResource("LabelSettings_ibkli")
+
+[node name="World" type="CanvasLayer" parent="." unique_id=2122924875]
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]

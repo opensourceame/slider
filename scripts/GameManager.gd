@@ -1,16 +1,21 @@
 extends Node2D
 
-@onready var tile_scene = preload("res://scenes/Tile.tscn")
+@onready var tile_scene   = preload("res://scenes/Tile.tscn")
+@onready var world        = $World
+@onready var hud          = $HUD
 
-var grid_size = Vector2(3, 4)
+var grid_size = Vector2(4, 6)
+#var grid_size = Vector2(3, 4)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
-var tile_size = 200
+var tile_size = 150
+var tile_gap = 5
 var tiles = []
-var empty_position = Vector2(1, 1)
+var empty_position : Vector2
 var game_won = false
 var normal_style: StyleBox
 var highlight_style: StyleBox
+var moves : int = 0
 
 func load_and_split_image():
 	var image = Image.load_from_file("res://images/pepper.jpg")
@@ -44,6 +49,7 @@ func split_image_into_pieces():
 	print("Created ", image_pieces.size(), " image pieces")
 
 func _ready():
+	empty_position = Vector2(grid_size.x - 1, grid_size.y - 1)
 	load_and_split_image()
 	create_styles()
 	initialize_grid()
@@ -97,7 +103,7 @@ func randomize_grid():
 			tile_index += 1
 
 func setup_tiles():
-	var spacing = 5
+	var spacing = tile_gap
 	var start_x = 0
 	var start_y = 0
 	
@@ -113,7 +119,7 @@ func setup_tiles():
 				start_y + y * (tile_size + spacing)
 			)
 			tile.grid_position = Vector2(x, y)
-			add_child(tile)
+			world.add_child(tile)
 
 func _on_tile_pressed(tile):
 	if game_won:
@@ -179,12 +185,12 @@ func highlight_tiles_to_empty(hovered_tile: Tile):
 			highlight_tile_at(Vector2(x, tile_pos.y))
 
 func highlight_tile_at(pos: Vector2):
-	for child in get_children():
+	for child in world.get_children():
 		if child is Tile and child.grid_position == pos:
 			child.set_highlight(true)
 
 func clear_highlights():
-	for child in get_children():
+	for child in world.get_children():
 		if child is Tile:
 			child.set_highlight(false)
 
@@ -213,7 +219,7 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 	if target_pos == empty_position:
 		#swap_with_empty(tile_pos)
 		
-		var spacing = 5
+		var spacing = tile_gap
 		var start_x = 0
 		var start_y = 0
 		
@@ -271,8 +277,15 @@ func move_tiles_to_empty(clicked_tile: Tile):
 				if tile_to_move:
 					slide_tile(tile_to_move, -1, 0)
 
+	moves += 1
+	
+	update_hud()
+	
+func update_hud():
+	$MovesLabel.text = str(moves) + " moves played"
+	
 func get_tile_at(pos: Vector2) -> Tile:
-	for child in get_children():
+	for child in world.get_children():
 		if child is Tile and child.grid_position == pos:
 			return child
 	return null

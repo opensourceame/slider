@@ -1,8 +1,10 @@
 extends Control
 class_name Tile
 
-@onready var background = $Background
-@onready var label 		= $Label
+@onready var game         = get_tree().current_scene
+@onready var world        = game.world
+@onready var background   = $Background
+@onready var label        = $NumberLabel
 @onready var texture_rect = $TextureRect
 
 static func BLANK() -> Tile:
@@ -26,16 +28,16 @@ func _on_gui_input(event):
 			_on_pressed()
 
 func _on_mouse_entered():
-	if get_parent() and get_parent().has_method("_on_tile_hover"):
-		get_parent()._on_tile_hover(self, true)
+	if game.has_method("_on_tile_hover"):
+		game._on_tile_hover(self, true)
 
 func _on_mouse_exited():
-	if get_parent() and get_parent().has_method("_on_tile_hover"):
-		get_parent()._on_tile_hover(self, false)
+	if game and game.has_method("_on_tile_hover"):
+		game._on_tile_hover(self, false)
 
 func _on_pressed():
-	if get_parent() and get_parent().has_method("_on_tile_pressed"):
-		get_parent()._on_tile_pressed(self)
+	if game and game.has_method("_on_tile_pressed"):
+		game._on_tile_pressed(self)
 
 func set_number(value):
 	number = value
@@ -61,8 +63,8 @@ func update_display():
 
 func set_highlight(highlighted: bool):
 	if highlighted:
-		modulate = Color.YELLOW
-		background.add_theme_stylebox_override("panel", get_parent().highlight_style)
+		modulate = Color.LIGHT_GRAY
+		background.add_theme_stylebox_override("panel", game.highlight_style)
 	else:
 		modulate = Color.WHITE
-		background.add_theme_stylebox_override("panel", get_parent().normal_style)
+		background.add_theme_stylebox_override("panel", game.normal_style)
