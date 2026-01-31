@@ -2,24 +2,58 @@ extends Node2D
 
 @onready var tile_scene = preload("res://scenes/Tile.tscn")
 
-var grid_size = Vector2(3, 3)
-var tile_size = 100
+var grid_size = Vector2(3, 4)
+var source_image: ImageTexture
+var image_pieces: Array[Texture2D] = []
+var tile_size = 200
 var tiles = []
-var empty_position = Vector2(2, 0)
+var empty_position = Vector2(1, 1)
 var game_won = false
 var normal_style: StyleBox
 var highlight_style: StyleBox
 
+func load_and_split_image():
+	var image = Image.load_from_file("res://images/pepper.jpg")
+	if image:
+		# Resize image to 400x600 (100x100 tiles in 4x6 grid)
+		image.resize(grid_size.x * tile_size, grid_size.y * tile_size, Image.INTERPOLATE_LANCZOS)
+		source_image = ImageTexture.create_from_image(image)
+		split_image_into_pieces()
+	else:
+		print("Failed to load pepper.jpg")
+
+func split_image_into_pieces():
+	if not source_image:
+		return
+		
+	var image = source_image.get_image()
+	var image_size = Vector2(image.get_width(), image.get_height())
+	var piece_width = image.get_width() / grid_size.x
+	var piece_height = image.get_height() / grid_size.y
+	
+	image_pieces.clear()
+	
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			var piece_rect = Rect2i(x * piece_width, y * piece_height, piece_width, piece_height)
+			var piece_image = Image.create(piece_width, piece_height, false, image.get_format())
+			piece_image.blit_rect(image, piece_rect, Vector2i.ZERO)
+			var piece_texture = ImageTexture.create_from_image(piece_image)
+			image_pieces.append(piece_texture)
+		
+	print("Created ", image_pieces.size(), " image pieces")
+
 func _ready():
+	load_and_split_image()
 	create_styles()
 	initialize_grid()
+	randomize_grid()
 	setup_tiles()
 
 func initialize_grid():
-	var numbers = []
-	for i in range(1, grid_size.x * grid_size.y):
-		numbers.append(i)
-	#numbers.shuffle()
+	var indices = []
+	for i in range(grid_size.x * grid_size.y):
+		indices.append(i)
 	
 	tiles.clear()
 	for y in range(grid_size.y):
@@ -31,13 +65,36 @@ func initialize_grid():
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			var t = tile_scene.instantiate()
+			t.set_size(Vector2(tile_size, tile_size))
+			var piece_index = y * grid_size.x + x
 			if x == empty_position.x and y == empty_position.y:
 				t.set_number(0)
 			else:
-				t.set_number(numbers.pop_front())
+				t.set_number(indices[piece_index] + 1)
+				if piece_index < image_pieces.size():
+					t.set_texture(image_pieces[piece_index])
 			tiles[y][x] = t
-				
-				
+	
+func randomize_grid():
+	var all_tiles = []
+	
+	# Collect all tiles except the empty one
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			if not (x == empty_position.x and y == empty_position.y):
+				all_tiles.append(tiles[y][x])
+	
+	# Shuffle the tiles
+	all_tiles.shuffle()
+	
+	# Redistribute tiles randomly
+	var tile_index = 0
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			if x == empty_position.x and y == empty_position.y:
+				continue
+			tiles[y][x] = all_tiles[tile_index]
+			tile_index += 1
 
 func setup_tiles():
 	var spacing = 5
