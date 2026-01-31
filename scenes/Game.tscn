@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bjh2x8d3wfn8q"]
+
+[ext_resource type="Script" uid="uid://dsfvvcogaqpit" path="res://scripts/GameManager.gd" id="1_8jv7h"]
+
+[node name="Game" type="Node2D" unique_id=902562489]
+script = ExtResource("1_8jv7h")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1496438668]
+position = Vector2(402, 301)
