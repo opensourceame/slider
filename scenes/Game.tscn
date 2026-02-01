@@ -6,10 +6,11 @@
 font_size = 48
 
 [node name="Game" type="Node2D" unique_id=902562489]
+position = Vector2(-50, -50)
 script = ExtResource("1_8jv7h")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1496438668]
-position = Vector2(550, 550)
+position = Vector2(450, 450)
 
 [node name="MovesLabel" type="Label" parent="." unique_id=581566356]
 offset_left = 700.0

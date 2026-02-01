@@ -25,8 +25,8 @@ func _ready():
 	setup_tiles()
 	
 	# Wait 2 seconds before shuffling
-	await get_tree().create_timer(2.0).timeout
-	randomize_grid()
+	#await get_tree().create_timer(2.0).timeout
+	#randomize_grid()
 
 	print("READY")
 	
@@ -141,9 +141,65 @@ func randomize_grid():
 	# Return the array of tweens so they can be awaited if needed
 	return tweens
 
-func setup_tiles():
+func get_grid_offset() -> Vector2:
+	var button_size = 40
+	var button_spacing = 10
+	return Vector2(button_size + button_spacing, 0)
+
+func create_row_buttons():
 	var spacing = tile_gap
-	var start_x = 0
+	var button_size = 40
+	var button_spacing = 10
+	var grid_offset = get_grid_offset()
+	var start_x = grid_offset.x
+	var start_y = 0
+	
+	for y in range(grid_size.y):
+		# Create left arrow button at start of each row
+		var left_button = Button.new()
+		left_button.text = "⬅️"
+		left_button.custom_minimum_size = Vector2(button_size, button_size)
+		left_button.add_theme_font_size_override("font_size", 40)
+		
+		# Position left button at the start (uses absolute position, not start_x)
+		var left_button_x = 0  # Position at screen left edge
+		var left_button_y = start_y + y * (tile_size + spacing) + (tile_size - button_size) / 2
+		
+		left_button.position = Vector2(left_button_x, left_button_y)
+		
+		# Connect left button press to slide_row function (direction -1 for left)
+		left_button.pressed.connect(func(): slide_row(y, -1))
+		
+		# Add left button to world
+		world.add_child(left_button)
+		
+		# Create right arrow button at end of each row
+		var right_button = Button.new()
+		right_button.text = "→"
+		right_button.custom_minimum_size = Vector2(button_size, button_size)
+		right_button.add_theme_font_size_override("font_size", 40)
+		
+		# Position right button at end of row
+		var right_button_x = start_x + grid_size.x * (tile_size + spacing) + button_spacing
+		var right_button_y = start_y + y * (tile_size + spacing) + (tile_size - button_size) / 2
+		
+		right_button.position = Vector2(right_button_x, right_button_y)
+		
+		# Connect right button press to slide_row function (direction 1 for right)
+		right_button.pressed.connect(func(): slide_row(y, 1))
+		
+		# Add right button to world
+		world.add_child(right_button)
+
+func setup_tiles():
+	# Clean up existing tiles and buttons first
+	for child in world.get_children():
+		if child is Tile or child is Button:
+			child.queue_free()
+	
+	var spacing = tile_gap
+	var grid_offset = get_grid_offset()
+	var start_x = grid_offset.x
 	var start_y = 0
 	
 	for y in range(grid_size.y):
@@ -159,6 +215,9 @@ func setup_tiles():
 			)
 			tile.grid_position = Vector2i(x, y)
 			world.add_child(tile)
+	
+	# Create row buttons after tiles
+	create_row_buttons()
 
 func _on_tile_pressed(tile):
 	if game_won:
@@ -172,6 +231,7 @@ func _on_tile_pressed(tile):
 		move_tiles_to_empty(tile)
 
 func check_win():
+	return
 	var expected = 1
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
@@ -224,7 +284,7 @@ func highlight_tiles_to_empty(hovered_tile: Tile):
 			highlight_tile_at(Vector2(tile_pos.x, y))
 	else:  # Same row
 		var start_x = min(tile_pos.x, empty_position.x)
-		var end_x = max(tile_pos.x, empty_position.x)
+		var end_x   = max(tile_pos.x, empty_position.x)
 		for x in range(start_x, end_x + 1):
 			highlight_tile_at(Vector2(x, tile_pos.y))
 
@@ -252,38 +312,29 @@ func in_line_with_empty(tile: Tile) -> bool:
 	return false
 
 func slide_tile(tile: Tile, x_dir: int, y_dir: int):
-	var tile_pos = tile.grid_position
+	var tile_pos   = tile.grid_position
 	var target_pos = tile_pos + Vector2i(x_dir, y_dir)
 	
 	# Check if target position is within bounds
 	if target_pos.x < 0 or target_pos.x >= grid_size.x or target_pos.y < 0 or target_pos.y >= grid_size.y:
 		return
 	
-	# Check if target position is the empty space
-	if target_pos == empty_position:
-		#swap_with_empty(tile_pos)
-		
-		var spacing = tile_gap
-		var start_x = 0
-		var start_y = 0
-		
-		var target_position = Vector2(
-			start_x + empty_position.x * (tile_size + spacing),
-			start_y + empty_position.y * (tile_size + spacing)
-		)
-		
-		# Create sliding animation
-		var tween = create_tween()
-		tween.set_ease(Tween.EASE_OUT)
-		tween.set_trans(Tween.TRANS_QUART)
-		tween.tween_property(tile, "position", target_position, 0.5)
-		
-		tile.grid_position = empty_position
-		empty_position = tile_pos
-		tiles[tile_pos.y][tile_pos.x] = Tile.BLANK()
-		tiles[empty_position.y][empty_position.x] = tile
-		# Check win condition after animation completes
-		tween.tween_callback(check_win_after_move)
+	assert(target_pos == empty_position)
+	
+	tile.grid_position = empty_position
+	empty_position = tile_pos
+	tiles[tile_pos.y][tile_pos.x] = Tile.BLANK()
+	tiles[tile.grid_position.y][tile.grid_position.x] = tile
+
+	animate_tile_move(tile)
+	
+func animate_tile_move(tile):
+	var tween = create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_QUART)
+	tween.tween_property(tile, "position", tile_position(tile), 0.5)
+
+	tween.tween_callback(check_win_after_move)
 
 func move_tiles_to_empty(clicked_tile: Tile):
 	var tile_pos = clicked_tile.grid_position
@@ -322,11 +373,11 @@ func move_tiles_to_empty(clicked_tile: Tile):
 				if tile_to_move:
 					slide_tile(tile_to_move, -1, 0)
 
+	update_moves()
+	
+func update_moves():
 	moves += 1
 	
-	update_hud()
-	
-func update_hud():
 	$MovesLabel.text = str(moves) + " moves played"
 	
 func get_tile_at(pos: Vector2i) -> Tile:
@@ -335,61 +386,43 @@ func get_tile_at(pos: Vector2i) -> Tile:
 			return child
 	return null
 
+func tile_position(tile):
+	var grid_offset = get_grid_offset()
+	return Vector2(
+		grid_offset.x + tile.grid_position.x * (tile_size + tile_gap),
+		grid_offset.y + tile.grid_position.y * (tile_size + tile_gap),
+
+	)
 func slide_row(row_index: int, direction: int):
-	if row_index < 0 or row_index >= grid_size.y:
-		return
+	assert(row_index >= 0 and row_index <= grid_size.y)
 	
-	# Get all tiles in the row
-	var row_tiles = []
-	for x in range(grid_size.x):
-		var tile = tiles[row_index][x]
-		if tile:
-			row_tiles.append(tile)
+	update_moves()
+
+	var row_tiles = tiles[row_index]
 	
-	if row_tiles.size() == 0:
-		return
+	assert(row_tiles.size() > 0)
+
+	print(row_tiles)	
+	if direction > 0:
+		var t = row_tiles.pop_back()
+		row_tiles.push_front(t)
+	else:
+		var t = row_tiles.pop_front()
+		row_tiles.push_back(t)
+	print(row_tiles)
 	
-	# Calculate new positions with wrapping
 	for i in range(row_tiles.size()):
 		var tile = row_tiles[i]
-		var current_x = tile.grid_position.x
-		var new_x
-		
-		if direction > 0:  # Slide right
-			new_x = (current_x + 1) % grid_size.x
-		else:  # Slide left
-			new_x = (current_x - 1 + grid_size.x) % grid_size.x
-		
-		# Update grid positions
-		tile.grid_position = Vector2i(new_x, row_index)
-		tiles[row_index][new_x] = tile
+		tile.grid_position = Vector2i(i, row_index)
+		if tile.number == 0:
+			empty_position = tile.grid_position
 	
-	# Calculate new visual positions with spacing
-	var spacing = 2
-	var start_x = 0
-	var start_y = 0
+		animate_tile_move(tile)	
 	
-	for tile in row_tiles:
-		var new_pos = Vector2(
-			start_x + tile.grid_position.x * (tile_size + spacing),
-			start_y + tile.grid_position.y * (tile_size + spacing)
-		)
-		
-		# Create sliding animation
-		var tween = create_tween()
-		tween.set_ease(Tween.EASE_OUT)
-		tween.set_trans(Tween.TRANS_QUART)
-		tween.tween_property(tile, "position", new_pos, 0.3)
-	
-	# Check if empty space moved and update
-	for x in range(grid_size.x):
-		if tiles[row_index][x].number == 0:
-			empty_position = Vector2i(x, row_index)
-			break
-
 func shuffle_tiles():
-	for child in get_children():
-		if child is Tile:
+	# Clean up tiles and buttons
+	for child in world.get_children():
+		if child is Tile or child is Button:
 			child.queue_free()
 	initialize_grid()
 	setup_tiles()
