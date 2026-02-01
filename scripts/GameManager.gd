@@ -329,6 +329,7 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 
 	animate_tile_move(tile)
 	
+	
 func animate_tile_move(tile):
 	var tween = create_tween()
 	tween.set_ease(Tween.EASE_OUT)
@@ -337,6 +338,8 @@ func animate_tile_move(tile):
 
 	tween.tween_callback(check_win_after_move)
 
+	#$Click.play(0.1)
+	
 func move_tiles_to_empty(clicked_tile: Tile):
 	var tile_pos = clicked_tile.grid_position
 	
@@ -354,11 +357,15 @@ func move_tiles_to_empty(clicked_tile: Tile):
 				var tile_to_move = get_tile_at(Vector2(tile_pos.x, y))
 				if tile_to_move:
 					slide_tile(tile_to_move, 0, 1)
+					await get_tree().create_timer(0.1).timeout
+
 		else:  # Clicked tile is below empty
 			for y in range(start_y + 1, end_y + 1):
 				var tile_to_move = get_tile_at(Vector2(tile_pos.x, y))
 				if tile_to_move:
 					slide_tile(tile_to_move, 0, -1)
+					await get_tree().create_timer(0.1).timeout
+
 	else:  # Same row
 		var start_x = min(tile_pos.x, empty_position.x)
 		var end_x = max(tile_pos.x, empty_position.x)
@@ -367,12 +374,17 @@ func move_tiles_to_empty(clicked_tile: Tile):
 			for x in range(end_x - 1, start_x - 1, -1):
 				var tile_to_move = get_tile_at(Vector2(x, tile_pos.y))
 				if tile_to_move:
+					await get_tree().create_timer(0.1).timeout
+
 					slide_tile(tile_to_move, 1, 0)
 		else:  # Clicked tile is right of empty
 			for x in range(start_x + 1, end_x + 1):
 				var tile_to_move = get_tile_at(Vector2(x, tile_pos.y))
 				if tile_to_move:
+					await get_tree().create_timer(0.1).timeout
+
 					slide_tile(tile_to_move, -1, 0)
+					
 
 	update_moves()
 	
