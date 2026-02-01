@@ -2,6 +2,7 @@ extends Node2D
 
 @onready var tile_scene   = preload("res://scenes/Tile.tscn")
 @onready var world        = $World
+@onready var board        = $World/Board
 @onready var hud          = $HUD
 
 var grid_size = Vector2i(4, 6)
@@ -9,7 +10,7 @@ var grid_size = Vector2i(4, 6)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
 var tile_size = 150
-var tile_gap = 5
+var tile_gap = 3
 var tiles = []
 var empty_position : Vector2i
 var game_won = false
@@ -142,13 +143,13 @@ func randomize_grid():
 	return tweens
 
 func get_grid_offset() -> Vector2:
-	var button_size = 40
+	var button_size = tile_size
 	var button_spacing = 10
 	return Vector2(button_size + button_spacing, 0)
 
 func create_row_buttons():
 	var spacing = tile_gap
-	var button_size = 40
+	var button_size = tile_size
 	var button_spacing = 10
 	var grid_offset = get_grid_offset()
 	var start_x = grid_offset.x
@@ -157,7 +158,7 @@ func create_row_buttons():
 	for y in range(grid_size.y):
 		# Create left arrow button at start of each row
 		var left_button = Button.new()
-		left_button.text = "⬅️"
+		left_button.text = "←"
 		left_button.custom_minimum_size = Vector2(button_size, button_size)
 		left_button.add_theme_font_size_override("font_size", 40)
 		
@@ -171,7 +172,7 @@ func create_row_buttons():
 		left_button.pressed.connect(func(): slide_row(y, -1))
 		
 		# Add left button to world
-		world.add_child(left_button)
+		board.add_child(left_button)
 		
 		# Create right arrow button at end of each row
 		var right_button = Button.new()
@@ -189,11 +190,11 @@ func create_row_buttons():
 		right_button.pressed.connect(func(): slide_row(y, 1))
 		
 		# Add right button to world
-		world.add_child(right_button)
+		board.add_child(right_button)
 
 func setup_tiles():
 	# Clean up existing tiles and buttons first
-	for child in world.get_children():
+	for child in board.get_children():
 		if child is Tile or child is Button:
 			child.queue_free()
 	
@@ -214,7 +215,7 @@ func setup_tiles():
 				start_y + y * (tile_size + spacing)
 			)
 			tile.grid_position = Vector2i(x, y)
-			world.add_child(tile)
+			board.add_child(tile)
 	
 	# Create row buttons after tiles
 	create_row_buttons()
@@ -289,12 +290,12 @@ func highlight_tiles_to_empty(hovered_tile: Tile):
 			highlight_tile_at(Vector2(x, tile_pos.y))
 
 func highlight_tile_at(pos: Vector2i):
-	for child in world.get_children():
+	for child in board.get_children():
 		if child is Tile and child.grid_position == pos:
 			child.set_highlight(true)
 
 func clear_highlights():
-	for child in world.get_children():
+	for child in board.get_children():
 		if child is Tile:
 			child.set_highlight(false)
 
@@ -381,7 +382,7 @@ func update_moves():
 	$MovesLabel.text = str(moves) + " moves played"
 	
 func get_tile_at(pos: Vector2i) -> Tile:
-	for child in world.get_children():
+	for child in board.get_children():
 		if child is Tile and child.grid_position == pos:
 			return child
 	return null
@@ -421,7 +422,7 @@ func slide_row(row_index: int, direction: int):
 	
 func shuffle_tiles():
 	# Clean up tiles and buttons
-	for child in world.get_children():
+	for child in board.get_children():
 		if child is Tile or child is Button:
 			child.queue_free()
 	initialize_grid()

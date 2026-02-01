@@ -13,12 +13,16 @@ script = ExtResource("1_8jv7h")
 position = Vector2(450, 450)
 
 [node name="MovesLabel" type="Label" parent="." unique_id=581566356]
-offset_left = 700.0
-offset_right = 891.0
-offset_bottom = 67.0
+offset_left = 140.0
+offset_top = -130.0
+offset_right = 331.0
+offset_bottom = -63.0
 text = "0 moves"
 label_settings = SubResource("LabelSettings_ibkli")
 
 [node name="World" type="CanvasLayer" parent="." unique_id=2122924875]
+
+[node name="Board" type="Node2D" parent="World" unique_id=496759016]
+position = Vector2(100, 100)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]
