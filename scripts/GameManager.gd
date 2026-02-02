@@ -9,7 +9,7 @@ var grid_size = Vector2i(4, 6)
 #var grid_size = Vector2(2,3)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
-var tile_size = 150
+var tile_size = 120
 var tile_gap = 3
 var tiles = []
 var empty_position : Vector2i
@@ -20,14 +20,17 @@ var moves : int = 0
 
 func _ready():
 	empty_position = Vector2i(grid_size.x - 1, grid_size.y - 1)
+	
+	# Test resource loading
+	print("Testing resource paths:")
+	print("Image exists: ", FileAccess.file_exists("res://images/pepper.jpg"))
+	print("Image import exists: ", FileAccess.file_exists("res://images/pepper.jpg.import"))
+	
 	load_and_split_image()
 	create_styles()
 	initialize_grid()
+	randomize_grid()
 	setup_tiles()
-	
-	# Wait 2 seconds before shuffling
-	#await get_tree().create_timer(2.0).timeout
-	#randomize_grid()
 
 	print("READY")
 	
@@ -35,23 +38,88 @@ func _physics_process(delta: float) -> void:
 	pass
 	
 func load_and_split_image():
-	var image = Image.load_from_file("res://images/pepper.jpg")
+	print("Attempting to load image from: res://images/pepper.jpg")
+	
+	# Check if file exists
+	if not FileAccess.file_exists("res://images/pepper.jpg"):
+		print("ERROR: Image file does not exist at res://images/pepper.jpg")
+		return
+	
+	# Try multiple methods for export compatibility
+	var image_path = "res://images/pepper.jpg"
+	var image: Image = null
+	
+	# Method 1: Direct Image.load_from_file (most reliable)
+	print("Method 1: Loading image directly from: ", image_path)
+	image = Image.load_from_file(image_path)
 	if image:
-		# Resize image to 400x600 (100x100 tiles in 4x6 grid)
-		image.resize(grid_size.x * tile_size, grid_size.y * tile_size, Image.INTERPOLATE_LANCZOS)
-		source_image = ImageTexture.create_from_image(image)
-		split_image_into_pieces()
+		print("✓ Image loaded directly, size: ", image.get_size())
 	else:
-		print("Failed to load pepper.jpg")
+		print("✗ Direct load failed, trying preload method...")
+		
+		# Method 2: Preload and convert
+		var preloaded = load(image_path)
+		if preloaded:
+			print("✓ Image preloaded as: ", typeof(preloaded), " content: ", preloaded)
+			# Try to get Image from any texture type
+			if preloaded is ImageTexture:
+				print("✓ Got ImageTexture, extracting image...")
+				image = preloaded.get_image()
+			elif preloaded is CompressedTexture2D:
+				print("✓ Got CompressedTexture2D, converting...")
+				# For compressed textures, try to extract via buffer
+				image = Image.new()
+				if not image.load_jpg_from_buffer(preloaded.get_data()):
+					print("✗ Buffer conversion failed, trying direct file access...")
+					image = Image.load_from_file("res://images/pepper.jpg")
+			else:
+				print("✗ Unknown texture type, trying direct file...")
+				image = Image.load_from_file("res://images/pepper.jpg")
+		else:
+			print("✗ Preload failed, trying direct file access...")
+			image = Image.load_from_file("res://images/pepper.jpg")
+	
+	# Method 3: Try Resources directory path for macOS exports
+	if not image:
+		print("✗ All methods failed, trying Resources directory path...")
+		var resources_path = "res://pepper.jpg"  # In exports, images might be in Resources root
+		image = Image.load_from_file(resources_path)
+		if image:
+			print("✓ Image loaded from Resources path, size: ", image.get_size())
+	
+	if not image:
+		print("ERROR: Could not load image with any method")
+		return
+	
+	# Resize image to match grid dimensions
+	var target_width = grid_size.x * tile_size
+	var target_height = grid_size.y * tile_size
+	print("Original size: ", image.get_size(), "-> Resizing to: ", target_width, "x", target_height)
+	image.resize(target_width, target_height, Image.INTERPOLATE_LANCZOS)
+	print("After resize: ", image.get_size())
+	
+	# Create source texture
+	source_image = ImageTexture.create_from_image(image)
+	print("✓ Source image texture created, size: ", source_image.get_size())
+	split_image_into_pieces()
 
 func split_image_into_pieces():
 	if not source_image:
+		print("ERROR: No source image available, creating fallback colored tiles")
+		create_fallback_tiles()
 		return
 		
 	var image = source_image.get_image()
+	if not image:
+		print("ERROR: Could not get image from texture, creating fallback colored tiles")
+		create_fallback_tiles()
+		return
+		
 	var image_size = Vector2(image.get_width(), image.get_height())
+	print("Source image size: ", image_size)
 	var piece_width = image.get_width() / grid_size.x
 	var piece_height = image.get_height() / grid_size.y
+	print("Piece dimensions: ", piece_width, "x", piece_height)
 	
 	image_pieces.clear()
 	
@@ -62,8 +130,29 @@ func split_image_into_pieces():
 			piece_image.blit_rect(image, piece_rect, Vector2i.ZERO)
 			var piece_texture = ImageTexture.create_from_image(piece_image)
 			image_pieces.append(piece_texture)
+			print("Created piece [", y, ",", x, "] texture: ", piece_texture.get_size())
 		
 	print("Created ", image_pieces.size(), " image pieces")
+
+func create_fallback_tiles():
+	print("Creating colored fallback tiles...")
+	image_pieces.clear()
+	
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			var piece_texture = ImageTexture.new()
+			var piece_image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGB8)
+			
+			# Create different colors for visual variety
+			var hue = (y * grid_size.x + x) * 360.0 / (grid_size.x * grid_size.y)
+			var color = Color.from_hsv(hue, 0.7, 0.8)
+			piece_image.fill(color)
+			
+			piece_texture.set_image(piece_image)
+			image_pieces.append(piece_texture)
+			print("Created fallback tile [", y, ",", x, "] with color: ", color)
+	
+	print("Created ", image_pieces.size(), " fallback tiles")
 
 
 func initialize_grid():
@@ -91,56 +180,35 @@ func initialize_grid():
 					t.set_texture(image_pieces[piece_index])
 			tiles[y][x] = t
 	
-func randomize_grid():
-	# Duplicate the current grid
-	var grid_copy = []
-	for y in range(grid_size.y):
-		grid_copy.append([])
-		for x in range(grid_size.x):
-			grid_copy[y].append(tiles[y][x])
-	
+func randomize_grid():	
 	# Create a list of all non-empty tiles for shuffling
 	var all_tiles = []
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			if not (x == empty_position.x and y == empty_position.y):
-				all_tiles.append(grid_copy[y][x])
+	for row in tiles:
+		for tile in row:
+			#if tile.is_blank():
+				#continue
+			all_tiles.append(tile)
 	
 	# Shuffle the tiles to get new random positions
 	all_tiles.shuffle()
 	
-	# Create tweens for all tiles to animate to their new positions
-	var tweens = []
-	var tile_index = 0
-	var spacing = tile_gap
-	var start_x = 0
-	var start_y = 0
+	tiles = []
 	
 	for y in range(grid_size.y):
+		var row = []
 		for x in range(grid_size.x):
-			if x == empty_position.x and y == empty_position.y:
+			var tile = all_tiles.pop_front()
+			if not tile:
 				continue
-				
-			var tile = all_tiles[tile_index]
-			var target_position = Vector2(
-				start_x + x * (tile_size + spacing),
-				start_y + y * (tile_size + spacing)
-			)
-			
-			# Create tween for this tile
-			var tween = create_tween()
-			tween.set_ease(Tween.EASE_OUT)
-			tween.set_trans(Tween.TRANS_QUART)
-			tween.tween_property(tile, "position", target_position, 2.0)
-			tweens.append(tween)
-			
-			# Update the grid data structure with new positions
-			tiles[y][x] = tile
+			row.append(tile)
 			tile.grid_position = Vector2i(x, y)
-			tile_index += 1
+			if tile.is_blank():
+				empty_position = tile.grid_position
+			animate_tile_move(tile)
+		tiles.append(row)
 	
-	# Return the array of tweens so they can be awaited if needed
-	return tweens
+	
+	print("tiles randomized")		
 
 func get_grid_offset() -> Vector2:
 	var button_size = tile_size
@@ -192,6 +260,51 @@ func create_row_buttons():
 		# Add right button to world
 		board.add_child(right_button)
 
+func create_column_buttons():
+	var spacing = tile_gap
+	var button_size = tile_size
+	var button_spacing = 10
+	var grid_offset = get_grid_offset()
+	var start_x = grid_offset.x
+	var start_y = 0
+	
+	for x in range(grid_size.x):
+		# Create up arrow button above each column
+		var up_button = Button.new()
+		up_button.text = "↑"
+		up_button.custom_minimum_size = Vector2(button_size, button_size)
+		up_button.add_theme_font_size_override("font_size", 40)
+		
+		# Position up button above the column
+		var up_button_x = start_x + x * (tile_size + spacing)
+		var up_button_y = -button_size - button_spacing  # Position above grid
+		
+		up_button.position = Vector2(up_button_x, up_button_y)
+		
+		# Connect up button press to slide_column function (direction -1 for up)
+		up_button.pressed.connect(func(): slide_column(x, -1))
+		
+		# Add up button to world
+		board.add_child(up_button)
+		
+		# Create down arrow button below each column
+		var down_button = Button.new()
+		down_button.text = "↓"
+		down_button.custom_minimum_size = Vector2(button_size, button_size)
+		down_button.add_theme_font_size_override("font_size", 40)
+		
+		# Position down button below the column
+		var down_button_x = start_x + x * (tile_size + spacing)
+		var down_button_y = start_y + grid_size.y * (tile_size + spacing) + button_spacing
+		
+		down_button.position = Vector2(down_button_x, down_button_y)
+		
+		# Connect down button press to slide_column function (direction 1 for down)
+		down_button.pressed.connect(func(): slide_column(x, 1))
+		
+		# Add down button to world
+		board.add_child(down_button)
+
 func setup_tiles():
 	# Clean up existing tiles and buttons first
 	for child in board.get_children():
@@ -206,7 +319,7 @@ func setup_tiles():
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			var tile = tiles[y][x]
-			if tiles[y][x].number == 0:
+			if tiles[y][x].is_blank():
 				continue
 			
 			#var tile = tile_scene.instantiate()
@@ -217,8 +330,9 @@ func setup_tiles():
 			tile.grid_position = Vector2i(x, y)
 			board.add_child(tile)
 	
-	# Create row buttons after tiles
+	# Create row and column buttons after tiles
 	create_row_buttons()
+	create_column_buttons()
 
 func _on_tile_pressed(tile):
 	if game_won:
@@ -431,7 +545,50 @@ func slide_row(row_index: int, direction: int):
 			empty_position = tile.grid_position
 	
 		animate_tile_move(tile)	
+
+func slide_column(col_index: int, direction: int):
+	assert(col_index >= 0 and col_index <= grid_size.x)
 	
+	update_moves()
+
+	# Get all tiles in the column
+	var column_tiles = []
+	for y in range(grid_size.y):
+		var tile = tiles[y][col_index]
+		if tile:
+			column_tiles.append(tile)
+	
+	assert(column_tiles.size() > 0)
+	
+	print("Column ", col_index, " before slide: ", column_tiles)
+	
+	# Slide tiles in column with wrapping
+	if direction > 0:  # Slide down
+		var t = column_tiles.pop_back()  # Remove from bottom
+		column_tiles.push_front(t)  # Add to top
+	else:  # Slide up
+		var t = column_tiles.pop_front()  # Remove from top
+		column_tiles.push_back(t)  # Add to bottom
+	
+	print("Column ", col_index, " after slide: ", column_tiles)
+	
+	for y in range(grid_size.y):
+		var tile = column_tiles.pop_front()
+		tiles[y][col_index] = tile
+		tile.grid_position = Vector2i(col_index, y)
+		if tile.number == 0:
+			empty_position = tile.grid_position
+		
+		animate_tile_move(tile)
+	# Update grid positions and animate tiles
+	#for i in range(column_tiles.size()):
+		#var tile = column_tiles[i]
+		#tile.grid_position = Vector2i(col_index, i)
+		#if tile.number == 0:
+			#empty_position = tile.grid_position
+		#
+		
+
 func shuffle_tiles():
 	# Clean up tiles and buttons
 	for child in board.get_children():

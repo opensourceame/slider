@@ -68,3 +68,6 @@ func set_highlight(highlighted: bool):
 	else:
 		modulate = Color.WHITE
 		background.add_theme_stylebox_override("panel", game.normal_style)
+
+func is_blank():
+	return number == 0
