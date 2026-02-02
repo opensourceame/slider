@@ -6,6 +6,14 @@
 [sub_resource type="LabelSettings" id="LabelSettings_ibkli"]
 font_size = 30
 
+[sub_resource type="SystemFont" id="SystemFont_qbsmt"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_qbsmt"]
+font = SubResource("SystemFont_qbsmt")
+font_size = 200
+outline_size = 19
+outline_color = Color(0.7413441, 0.85064906, 0.1043692, 1)
+
 [node name="Game" type="Node2D" unique_id=902562489]
 script = ExtResource("1_8jv7h")
 
@@ -24,7 +32,21 @@ position = Vector2(20, 400)
 
 [node name="Buttons" type="Node2D" parent="World/Board" unique_id=1482873955]
 
+[node name="WinLabel" type="Label" parent="World" unique_id=1414690924]
+visible = false
+offset_left = 140.0
+offset_top = 500.0
+offset_right = 860.0
+offset_bottom = 910.0
+text = "WINNER!"
+label_settings = SubResource("LabelSettings_qbsmt")
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]
 
 [node name="Click" type="AudioStreamPlayer" parent="." unique_id=1099986464]
 stream = ExtResource("2_qbsmt")
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1207187384]
+amount = 12

@@ -8,6 +8,11 @@ bg_color = Color(0, 0, 0, 1)
 [sub_resource type="LabelSettings" id="LabelSettings_number"]
 font_size = 70
 
+[sub_resource type="Gradient" id="Gradient_silver_sparkles"]
+interpolation_mode = 2
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.95, 0.95, 0.98, 0.8, 0.9, 0.9, 0.95, 0)
+
 [node name="Tile" type="Control" unique_id=189504325]
 custom_minimum_size = Vector2(60, 60)
 layout_mode = 3
@@ -50,3 +55,24 @@ text = "?"
 label_settings = SubResource("LabelSettings_number")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Sparkles" type="CPUParticles2D" parent="." unique_id=1479905191]
+position = Vector2(50, 50)
+emitting = false
+amount = 13
+lifetime = 0.47000000000000003
+one_shot = true
+explosiveness = 1.0
+emission_shape = 1
+emission_sphere_radius = 3.48
+direction = Vector2(0, 0)
+spread = 360.0
+gravity = Vector2(0, -10)
+initial_velocity_min = 40.0
+initial_velocity_max = 90.0
+angular_velocity_min = -120.0
+angular_velocity_max = 120.0
+scale_amount_min = 24.21
+scale_amount_max = 24.21
+color = Color(0.95, 0.95, 1, 1)
+color_ramp = SubResource("Gradient_silver_sparkles")

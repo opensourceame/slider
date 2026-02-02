@@ -211,6 +211,7 @@ func initialize_grid():
 		for x in range(grid_size.x):
 			var t = tile_scene.instantiate()
 			t.set_size(Vector2(calculated_tile_size, calculated_tile_size))
+
 			var piece_index = y * grid_size.x + x
 			if x == empty_position.x and y == empty_position.y:
 				t.set_number(0)
@@ -368,6 +369,7 @@ func setup_tiles():
 				start_y + y * (tile_size + spacing)
 			)
 			tile.grid_position = Vector2i(x, y)
+
 			board.add_child(tile)
 	
 	# Create row and column buttons after tiles
@@ -404,6 +406,8 @@ func check_win():
 		button.queue_free()
 	
 	current_state = State.WON
+		
+	$World/WinLabel.show()
 		
 	return true
 

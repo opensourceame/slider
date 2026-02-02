@@ -6,6 +6,7 @@ class_name Tile
 @onready var background   = $Background
 @onready var label        = $NumberLabel
 @onready var texture_rect = $TextureRect
+@onready var sparkles     = $Sparkles
 
 static func BLANK() -> Tile:
 	var t = preload("res://scenes/Tile.tscn").instantiate()
@@ -20,6 +21,7 @@ func _ready():
 	background.gui_input.connect(_on_gui_input)
 	background.mouse_entered.connect(_on_mouse_entered)
 	background.mouse_exited.connect(_on_mouse_exited)
+	sparkles.position = texture_rect.size / 2
 	update_display()
 
 func _on_gui_input(event):
@@ -63,11 +65,17 @@ func update_display():
 
 func set_highlight(highlighted: bool):
 	if highlighted:
-		modulate = Color.YELLOW
+		modulate = Color.LAVENDER_BLUSH
 		background.add_theme_stylebox_override("panel", game.highlight_style)
+		trigger_sparkles()
 	else:
 		modulate = Color.WHITE
 		background.add_theme_stylebox_override("panel", game.normal_style)
+
+func trigger_sparkles():
+	if sparkles:
+		sparkles.restart()
+		sparkles.emitting = true
 
 func is_blank():
 	return number == 0
