@@ -3,36 +3,101 @@ extends Node2D
 @onready var tile_scene   = preload("res://scenes/Tile.tscn")
 @onready var world        = $World
 @onready var board        = $World/Board
+@onready var buttons      = $World/Board/Buttons
 @onready var hud          = $HUD
 
+enum State { PLAYING, WON }
+const BOARD_MARGIN=40 # pixels
+ 
 var grid_size = Vector2i(4, 6)
-#var grid_size = Vector2(2,3)
+#var grid_size = Vector2i(2,3)
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
 var tile_size = 120
 var tile_gap = 3
+var base_tile_size = 120
+var calculated_tile_size = 120
 var tiles = []
 var empty_position : Vector2i
 var game_won = false
 var normal_style: StyleBox
 var highlight_style: StyleBox
 var moves : int = 0
+var column_buttons = []
+var row_buttons    = []
+var current_state : int = State.PLAYING
 
 func _ready():
 	empty_position = Vector2i(grid_size.x - 1, grid_size.y - 1)
+	
+	# Calculate tile size to fit viewport
+	calculate_tile_size()
+	
+	# Connect viewport resize signal
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	
 	# Test resource loading
 	print("Testing resource paths:")
 	print("Image exists: ", FileAccess.file_exists("res://images/pepper.jpg"))
 	print("Image import exists: ", FileAccess.file_exists("res://images/pepper.jpg.import"))
+	print("Calculated tile size: ", calculated_tile_size)
 	
 	load_and_split_image()
 	create_styles()
 	initialize_grid()
-	randomize_grid()
+	#randomize_grid()
 	setup_tiles()
 
 	print("READY")
+
+func _on_viewport_resized():
+	print("Viewport resized, recalculating tile size...")
+	calculate_tile_size()
+	
+	# Reload and split image with new size
+	load_and_split_image()
+	
+	# Reinitialize grid with new tile sizes
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			var tile = tiles[y][x]
+			if tile:
+				tile.set_size(Vector2(calculated_tile_size, calculated_tile_size))
+				var piece_index = y * grid_size.x + x
+				if piece_index < image_pieces.size():
+					tile.set_texture(image_pieces[piece_index])
+	
+	# Reposition all tiles
+	setup_tiles()
+	
+func calculate_tile_size():
+	# Get viewport dimensions
+	var viewport_size = get_viewport().get_visible_rect().size
+	print("Viewport size: ", viewport_size)
+	
+	# Calculate available space (leave some margin for buttons and UI)
+	var margin = BOARD_MARGIN  # pixels margin on each side
+	var available_width = viewport_size.x - (margin * 2)
+	var available_height = viewport_size.y - (margin * 2)
+	
+	# Calculate tile size based on grid
+	var tile_width  = available_width / (grid_size.x + 2)
+	var tile_height = tile_width
+	#var tile_height = available_height / grid_size.y
+	
+	# Use the smaller dimension to ensure tiles fit
+	var max_tile_size = min(tile_width, tile_height)
+	
+	# Ensure minimum size for usability
+	max_tile_size = max(max_tile_size, 60)
+	
+	# Apply calculated size
+	calculated_tile_size = int(max_tile_size)
+	tile_size = calculated_tile_size
+	
+	print("Available space: ", available_width, "x", available_height)
+	print("Tile dimensions calculated: ", tile_width, "x", tile_height)
+	print("Final tile size: ", tile_size)
 	
 func _physics_process(delta: float) -> void:
 	pass
@@ -91,9 +156,9 @@ func load_and_split_image():
 		print("ERROR: Could not load image with any method")
 		return
 	
-	# Resize image to match grid dimensions
-	var target_width = grid_size.x * tile_size
-	var target_height = grid_size.y * tile_size
+	# Resize image to match grid dimensions with calculated tile size
+	var target_width = grid_size.x * calculated_tile_size
+	var target_height = grid_size.y * calculated_tile_size
 	print("Original size: ", image.get_size(), "-> Resizing to: ", target_width, "x", target_height)
 	image.resize(target_width, target_height, Image.INTERPOLATE_LANCZOS)
 	print("After resize: ", image.get_size())
@@ -141,7 +206,7 @@ func create_fallback_tiles():
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			var piece_texture = ImageTexture.new()
-			var piece_image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGB8)
+			var piece_image = Image.create(calculated_tile_size, calculated_tile_size, false, Image.FORMAT_RGB8)
 			
 			# Create different colors for visual variety
 			var hue = (y * grid_size.x + x) * 360.0 / (grid_size.x * grid_size.y)
@@ -170,7 +235,7 @@ func initialize_grid():
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			var t = tile_scene.instantiate()
-			t.set_size(Vector2(tile_size, tile_size))
+			t.set_size(Vector2(calculated_tile_size, calculated_tile_size))
 			var piece_index = y * grid_size.x + x
 			if x == empty_position.x and y == empty_position.y:
 				t.set_number(0)
@@ -217,7 +282,7 @@ func get_grid_offset() -> Vector2:
 
 func create_row_buttons():
 	var spacing = tile_gap
-	var button_size = tile_size
+	var button_size = calculated_tile_size
 	var button_spacing = 10
 	var grid_offset = get_grid_offset()
 	var start_x = grid_offset.x
@@ -240,7 +305,7 @@ func create_row_buttons():
 		left_button.pressed.connect(func(): slide_row(y, -1))
 		
 		# Add left button to world
-		board.add_child(left_button)
+		buttons.add_child(left_button)
 		
 		# Create right arrow button at end of each row
 		var right_button = Button.new()
@@ -258,11 +323,11 @@ func create_row_buttons():
 		right_button.pressed.connect(func(): slide_row(y, 1))
 		
 		# Add right button to world
-		board.add_child(right_button)
+		buttons.add_child(right_button)
 
 func create_column_buttons():
 	var spacing = tile_gap
-	var button_size = tile_size
+	var button_size = calculated_tile_size
 	var button_spacing = 10
 	var grid_offset = get_grid_offset()
 	var start_x = grid_offset.x
@@ -285,7 +350,7 @@ func create_column_buttons():
 		up_button.pressed.connect(func(): slide_column(x, -1))
 		
 		# Add up button to world
-		board.add_child(up_button)
+		buttons.add_child(up_button)
 		
 		# Create down arrow button below each column
 		var down_button = Button.new()
@@ -303,7 +368,7 @@ func create_column_buttons():
 		down_button.pressed.connect(func(): slide_column(x, 1))
 		
 		# Add down button to world
-		board.add_child(down_button)
+		buttons.add_child(down_button)
 
 func setup_tiles():
 	# Clean up existing tiles and buttons first
@@ -346,7 +411,7 @@ func _on_tile_pressed(tile):
 		move_tiles_to_empty(tile)
 
 func check_win():
-	return
+	#return
 	var expected = 1
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
@@ -359,7 +424,12 @@ func check_win():
 			if t.number != expected:
 				return false
 			expected += 1
-	print("COMPLETE")
+	
+	for button in buttons.get_children():
+		button.queue_free()
+	
+	current_state = State.WON
+		
 	return true
 
 func check_win_after_move():
@@ -379,6 +449,9 @@ func create_styles():
 	highlight_style.bg_color = Color.DARK_GREEN
 
 func _on_tile_hover(tile: Tile, hovering: bool):
+	if current_state == State.WON:
+		return 
+		
 	if hovering:
 		highlight_tiles_to_empty(tile)
 	else:
@@ -506,6 +579,8 @@ func update_moves():
 	moves += 1
 	
 	$MovesLabel.text = str(moves) + " moves played"
+	
+	check_win()
 	
 func get_tile_at(pos: Vector2i) -> Tile:
 	for child in board.get_children():

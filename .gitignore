@@ -2,6 +2,8 @@
 .godot/
 .nomedia
 
+builds/
+
 # Godot-specific ignores
 .import/
 export.cfg
@@ -18,3 +20,8 @@ mono_crash.*.json
 
 .DS_Store
 **/*/.DS_Store
+
+# Large executables and installers
+*.apk
+*.dmg
+*.x86_64

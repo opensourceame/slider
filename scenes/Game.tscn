@@ -4,23 +4,25 @@
 [ext_resource type="AudioStream" uid="uid://bunju6vbgjnv0" path="res://sounds/click.mp3" id="2_qbsmt"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_ibkli"]
-font_size = 41
+font_size = 30
 
 [node name="Game" type="Node2D" unique_id=902562489]
 script = ExtResource("1_8jv7h")
 
 [node name="MovesLabel" type="Label" parent="." unique_id=581566356]
-offset_left = 240.0
-offset_top = -150.0
-offset_right = 431.0
-offset_bottom = -83.0
+offset_right = 1080.0
+offset_bottom = 67.0
 text = "0 moves"
 label_settings = SubResource("LabelSettings_ibkli")
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="World" type="CanvasLayer" parent="." unique_id=2122924875]
 
 [node name="Board" type="Node2D" parent="World" unique_id=496759016]
-position = Vector2(200, 190)
+position = Vector2(20, 400)
+
+[node name="Buttons" type="Node2D" parent="World/Board" unique_id=1482873955]
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]
 

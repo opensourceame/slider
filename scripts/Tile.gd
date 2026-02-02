@@ -63,7 +63,7 @@ func update_display():
 
 func set_highlight(highlighted: bool):
 	if highlighted:
-		modulate = Color.DARK_SLATE_BLUE
+		modulate = Color.YELLOW
 		background.add_theme_stylebox_override("panel", game.highlight_style)
 	else:
 		modulate = Color.WHITE
