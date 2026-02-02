@@ -42,4 +42,3 @@ viewport/transparent_background=true
 
 export/resource_filter="all_resources"
 export/files_to_pack="*"
-export/include_filter="images/*"

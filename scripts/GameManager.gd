@@ -1,6 +1,8 @@
 extends Node2D
 
 @onready var tile_scene   = preload("res://scenes/Tile.tscn")
+const PEPPER_IMAGE        = preload("res://images/pepper.jpg")
+const CLICK_SOUND         = preload("res://sounds/click.mp3")
 @onready var world        = $World
 @onready var board        = $World/Board
 @onready var buttons      = $World/Board/Buttons
@@ -36,10 +38,10 @@ func _ready():
 	# Connect viewport resize signal
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	
-	# Test resource loading
-	print("Testing resource paths:")
-	print("Image exists: ", FileAccess.file_exists("res://images/pepper.jpg"))
-	print("Image import exists: ", FileAccess.file_exists("res://images/pepper.jpg.import"))
+	# Test preloaded resources
+	print("Testing preloaded resources:")
+	print("Pepper image preloaded: ", PEPPER_IMAGE != null)
+	print("Click sound preloaded: ", CLICK_SOUND != null)
 	print("Calculated tile size: ", calculated_tile_size)
 	
 	load_and_split_image()
@@ -103,58 +105,31 @@ func _physics_process(delta: float) -> void:
 	pass
 	
 func load_and_split_image():
-	print("Attempting to load image from: res://images/pepper.jpg")
+	print("Loading preloaded pepper image...")
 	
-	# Check if file exists
-	if not FileAccess.file_exists("res://images/pepper.jpg"):
-		print("ERROR: Image file does not exist at res://images/pepper.jpg")
-		return
-	
-	# Try multiple methods for export compatibility
-	var image_path = "res://images/pepper.jpg"
+	# Use preloaded image for dependency tracking
 	var image: Image = null
 	
-	# Method 1: Direct Image.load_from_file (most reliable)
-	print("Method 1: Loading image directly from: ", image_path)
-	image = Image.load_from_file(image_path)
-	if image:
-		print("✓ Image loaded directly, size: ", image.get_size())
-	else:
-		print("✗ Direct load failed, trying preload method...")
-		
-		# Method 2: Preload and convert
-		var preloaded = load(image_path)
-		if preloaded:
-			print("✓ Image preloaded as: ", typeof(preloaded), " content: ", preloaded)
-			# Try to get Image from any texture type
-			if preloaded is ImageTexture:
-				print("✓ Got ImageTexture, extracting image...")
-				image = preloaded.get_image()
-			elif preloaded is CompressedTexture2D:
-				print("✓ Got CompressedTexture2D, converting...")
-				# For compressed textures, try to extract via buffer
-				image = Image.new()
-				if not image.load_jpg_from_buffer(preloaded.get_data()):
-					print("✗ Buffer conversion failed, trying direct file access...")
-					image = Image.load_from_file("res://images/pepper.jpg")
-			else:
-				print("✗ Unknown texture type, trying direct file...")
-				image = Image.load_from_file("res://images/pepper.jpg")
+	# Get image from preloaded texture
+	if PEPPER_IMAGE is CompressedTexture2D:
+		print("✓ Got CompressedTexture2D from preload, extracting and decompressing...")
+		var compressed_image = PEPPER_IMAGE.get_image()
+		if compressed_image:
+			# Decompress compressed image
+			image = compressed_image.duplicate()
+			image.decompress()
 		else:
-			print("✗ Preload failed, trying direct file access...")
-			image = Image.load_from_file("res://images/pepper.jpg")
-	
-	# Method 3: Try Resources directory path for macOS exports
-	if not image:
-		print("✗ All methods failed, trying Resources directory path...")
-		var resources_path = "res://pepper.jpg"  # In exports, images might be in Resources root
-		image = Image.load_from_file(resources_path)
-		if image:
-			print("✓ Image loaded from Resources path, size: ", image.get_size())
-	
-	if not image:
-		print("ERROR: Could not load image with any method")
+			print("✗ Failed to get image from CompressedTexture2D")
+			return
+	else:
+		print("✗ Unknown texture type from preload: ", typeof(PEPPER_IMAGE))
 		return
+	
+	if not image:
+		print("ERROR: Could not get image from preloaded texture")
+		return
+		
+	print("✓ Image loaded from preload, size: ", image.get_size())
 	
 	# Resize image to match grid dimensions with calculated tile size
 	var target_width = grid_size.x * calculated_tile_size
