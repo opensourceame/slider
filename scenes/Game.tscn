@@ -11,6 +11,9 @@ font_size = 200
 outline_size = 19
 outline_color = Color(0.7413441, 0.85064906, 0.1043692, 1)
 
+[sub_resource type="Theme" id="Theme_cpr0p"]
+default_font_size = 50
+
 [sub_resource type="Theme" id="Theme_qbsmt"]
 default_font_size = 30
 
@@ -35,29 +38,71 @@ label_settings = SubResource("LabelSettings_qbsmt")
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="CPUParticles2D" type="CPUParticles2D" parent="World" unique_id=1207187384]
+visible = false
+amount = 12
+
 [node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]
 
 [node name="HBoxContainer" type="HBoxContainer" parent="HUD" unique_id=1896796996]
-offset_right = 40.0
-offset_bottom = 40.0
-theme = SubResource("Theme_qbsmt")
+layout_direction = 2
+offset_right = 700.0
+offset_bottom = 96.0
+size_flags_horizontal = 3
+theme = SubResource("Theme_cpr0p")
 
 [node name="Button" type="Button" parent="HUD/HBoxContainer" unique_id=1038392139]
 layout_mode = 2
 text = "↩️"
 
-[node name="Button2" type="Button" parent="HUD/HBoxContainer" unique_id=1548698838]
+[node name="PeekButton" type="Button" parent="HUD/HBoxContainer" unique_id=1548698838]
 layout_mode = 2
+theme_override_font_sizes/font_size = 64
 text = "👀"
 
 [node name="MovesLabel" type="Label" parent="HUD/HBoxContainer" unique_id=581566356]
+unique_name_in_owner = true
 layout_mode = 2
 text = "0 moves"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="PeekOverlay" type="CanvasLayer" parent="." unique_id=352275737]
+visible = false
+
+[node name="Background" type="ColorRect" parent="PeekOverlay" unique_id=352275738]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.8)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PeekOverlay" unique_id=352275739]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -400.0
+offset_right = 300.0
+offset_bottom = 400.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PeekImage" type="TextureRect" parent="PeekOverlay/VBoxContainer" unique_id=352275740]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+stretch_mode = 2
+
+[node name="TapLabel" type="Label" parent="PeekOverlay/VBoxContainer" unique_id=352275741]
+layout_mode = 2
+theme = SubResource("Theme_qbsmt")
+theme_override_font_sizes/font_size = 24
+text = "Tap anywhere to close"
+horizontal_alignment = 1
+
 [node name="Click" type="AudioStreamPlayer" parent="." unique_id=1099986464]
 stream = ExtResource("2_qbsmt")
-
-[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1207187384]
-amount = 12

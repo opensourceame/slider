@@ -7,8 +7,11 @@ const CLICK_SOUND         = preload("res://sounds/click.mp3")
 @onready var board        = $World/Board
 @onready var buttons      = $World/Board/Buttons
 @onready var hud          = $HUD
+@onready var peek_overlay = $PeekOverlay
+@onready var peek_image   = $PeekOverlay/VBoxContainer/PeekImage
+@onready var peek_button  = $HUD/HBoxContainer/PeekButton
 
-enum State { PLAYING, WON }
+enum State { INTRO, PLAYING, WON }
 enum Speed { NORMAL, SLOW, FAST }
 const ANIMATION_TIME = [ 1.0, 2.0, 0.5 ]
 const BOARD_MARGIN=40 # pixels
@@ -54,9 +57,17 @@ func _ready():
 	initialize_grid()
 	setup_tiles()
 	
+	# Connect Peek button
+	peek_button.pressed.connect(_on_peek_button_pressed)
+	peek_overlay.visible = false
+	
+	current_state = State.INTRO
+	
 	await get_tree().create_timer(3.0).timeout
 	randomize_grid()
 
+	current_state = State.PLAYING
+	
 	print("READY")
 
 func _on_viewport_resized():
@@ -384,7 +395,7 @@ func setup_tiles():
 	create_column_buttons()
 
 func _on_tile_pressed(tile):
-	if game_won:
+	if not can_play():
 		return
 	
 	print("clicked on ", tile.grid_position)
@@ -423,7 +434,7 @@ func check_win_after_move():
 		game_won = true
 		print("You won!")
 
-func _unhandled_input(event):
+func _xunhandled_input(event):
 	if event.is_action_pressed("ui_accept"):
 		shuffle_tiles()
 
@@ -435,13 +446,20 @@ func create_styles():
 	highlight_style.bg_color = Color.DARK_GREEN
 
 func _on_tile_hover(tile: Tile, hovering: bool):
-	if current_state == State.WON:
+	if not can_play():
 		return 
 		
 	if hovering:
 		highlight_tiles_to_empty(tile)
 	else:
 		clear_highlights()
+
+func can_play():
+	match current_state:
+		State.PLAYING:
+			return true
+		State.INTRO, State.WON:
+			return false
 
 func highlight_tiles_to_empty(hovered_tile: Tile):
 	var tile_pos = hovered_tile.grid_position
@@ -563,7 +581,7 @@ func move_tiles_to_empty(clicked_tile: Tile):
 func update_moves():
 	moves += 1
 	
-	$HUD/MovesLabel.text = str(moves) + " moves"
+	%MovesLabel.text = str(moves) + " moves"
 	$Click.play()
 	
 	check_win()
@@ -582,6 +600,9 @@ func tile_position(tile):
 
 	)
 func slide_row(row_index: int, direction: int):
+	if not can_play():
+		return
+		
 	assert(row_index >= 0 and row_index <= grid_size.y)
 	
 	update_moves()
@@ -608,6 +629,9 @@ func slide_row(row_index: int, direction: int):
 		animate_tile_move(tile)	
 
 func slide_column(col_index: int, direction: int):
+	if not can_play():
+		return
+		
 	assert(col_index >= 0 and col_index <= grid_size.x)
 	
 	update_moves()
@@ -658,3 +682,24 @@ func shuffle_tiles():
 	initialize_grid()
 	setup_tiles()
 	game_won = false
+
+func _on_peek_button_pressed():
+	if can_play():
+		peek_overlay.visible = true
+		peek_image.texture = source_image
+
+func _unhandled_input(event):
+	# Handle closing peek overlay
+	if peek_overlay.visible:
+		if event is InputEventMouseButton or event is InputEventScreenTouch:
+			if event.pressed:
+				peek_overlay.hide()
+				get_viewport().set_input_as_handled()
+		elif event.is_action_pressed("ui_cancel"):
+			peek_overlay.show()
+			get_viewport().set_input_as_handled()
+			return
+	
+	# Existing input handling
+	if event.is_action_pressed("ui_accept"):
+		shuffle_tiles()
