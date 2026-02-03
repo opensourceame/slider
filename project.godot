@@ -8,6 +8,12 @@
 
 config_version=5
 
+[android]
+
+display/orientation=1
+screen/orientation=1
+permissions/android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+
 [application]
 
 config/name="Sliding Puzzle"
@@ -24,19 +30,15 @@ GameState="*res://scripts/GameState.gd"
 
 window/size/viewport_width=1080
 window/size/viewport_height=1920
+window/size/mode=3
 window/stretch/mode="canvas_items"
+window/handheld/orientation=1
 
 [display_mobile]
 
 window/size/viewport_width=1080
 window/size/viewport_height=1920
 window/stretch/mode="canvas_items"
-
-[android]
-
-display/orientation=1
-screen/orientation=1
-permissions/android:name="android.permission.WRITE_EXTERNAL_STORAGE"
 
 [physics]
 

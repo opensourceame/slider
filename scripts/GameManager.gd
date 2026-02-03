@@ -9,6 +9,8 @@ const CLICK_SOUND         = preload("res://sounds/click.mp3")
 @onready var hud          = $HUD
 
 enum State { PLAYING, WON }
+enum Speed { NORMAL, SLOW, FAST }
+const ANIMATION_TIME = [ 1.0, 2.0, 0.5 ]
 const BOARD_MARGIN=40 # pixels
  
 var grid_size = Vector2i(3, 5)
@@ -501,11 +503,11 @@ func slide_tile(tile: Tile, x_dir: int, y_dir: int):
 	animate_tile_move(tile)
 	
 	
-func animate_tile_move(tile):
+func animate_tile_move(tile, speed = ANIMATION_TIME[Speed.NORMAL]):
 	var tween = create_tween()
 	tween.set_ease(Tween.EASE_OUT)
 	tween.set_trans(Tween.TRANS_QUART)
-	tween.tween_property(tile, "position", tile_position(tile), 0.5)
+	tween.tween_property(tile, "position", tile_position(tile), speed)
 
 	tween.tween_callback(check_win_after_move)
 
@@ -556,13 +558,13 @@ func move_tiles_to_empty(clicked_tile: Tile):
 
 					slide_tile(tile_to_move, -1, 0)
 					
-
 	update_moves()
 	
 func update_moves():
 	moves += 1
 	
-	$MovesLabel.text = str(moves) + " moves played"
+	$HUD/MovesLabel.text = str(moves) + " moves"
+	$Click.play()
 	
 	check_win()
 	

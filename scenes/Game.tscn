@@ -3,9 +3,6 @@
 [ext_resource type="Script" uid="uid://dsfvvcogaqpit" path="res://scripts/GameManager.gd" id="1_8jv7h"]
 [ext_resource type="AudioStream" uid="uid://bunju6vbgjnv0" path="res://sounds/click.mp3" id="2_qbsmt"]
 
-[sub_resource type="LabelSettings" id="LabelSettings_ibkli"]
-font_size = 30
-
 [sub_resource type="SystemFont" id="SystemFont_qbsmt"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_qbsmt"]
@@ -14,16 +11,11 @@ font_size = 200
 outline_size = 19
 outline_color = Color(0.7413441, 0.85064906, 0.1043692, 1)
 
+[sub_resource type="Theme" id="Theme_qbsmt"]
+default_font_size = 30
+
 [node name="Game" type="Node2D" unique_id=902562489]
 script = ExtResource("1_8jv7h")
-
-[node name="MovesLabel" type="Label" parent="." unique_id=581566356]
-offset_right = 1080.0
-offset_bottom = 67.0
-text = "0 moves"
-label_settings = SubResource("LabelSettings_ibkli")
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="World" type="CanvasLayer" parent="." unique_id=2122924875]
 
@@ -44,6 +36,25 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=352275736]
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HUD" unique_id=1896796996]
+offset_right = 40.0
+offset_bottom = 40.0
+theme = SubResource("Theme_qbsmt")
+
+[node name="Button" type="Button" parent="HUD/HBoxContainer" unique_id=1038392139]
+layout_mode = 2
+text = "↩️"
+
+[node name="Button2" type="Button" parent="HUD/HBoxContainer" unique_id=1548698838]
+layout_mode = 2
+text = "👀"
+
+[node name="MovesLabel" type="Label" parent="HUD/HBoxContainer" unique_id=581566356]
+layout_mode = 2
+text = "0 moves"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Click" type="AudioStreamPlayer" parent="." unique_id=1099986464]
 stream = ExtResource("2_qbsmt")
