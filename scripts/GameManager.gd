@@ -11,8 +11,10 @@ const CLICK_SOUND         = preload("res://sounds/click.mp3")
 enum State { PLAYING, WON }
 const BOARD_MARGIN=40 # pixels
  
-var grid_size = Vector2i(4, 6)
+var grid_size = Vector2i(3, 5)
 #var grid_size = Vector2i(2,3)
+
+
 var source_image: ImageTexture
 var image_pieces: Array[Texture2D] = []
 var tile_size = 120
@@ -30,6 +32,7 @@ var row_buttons    = []
 var current_state : int = State.PLAYING
 
 func _ready():
+	grid_size = GameState.get_grid_size()
 	empty_position = Vector2i(grid_size.x - 1, grid_size.y - 1)
 	
 	# Calculate tile size to fit viewport
@@ -47,8 +50,10 @@ func _ready():
 	load_and_split_image()
 	create_styles()
 	initialize_grid()
-	#randomize_grid()
 	setup_tiles()
+	
+	await get_tree().create_timer(3.0).timeout
+	randomize_grid()
 
 	print("READY")
 
